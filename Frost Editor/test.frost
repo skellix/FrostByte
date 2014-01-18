@@ -1,0 +1,4 @@
+print *:foo . endl
+class foo {
+    print "test" . endl
+}
