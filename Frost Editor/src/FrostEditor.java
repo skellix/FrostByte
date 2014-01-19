@@ -2,13 +2,14 @@ import java.awt.Color;
 import java.awt.Font;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executors;
 
 import javax.swing.JDialog;
 import javax.swing.JFrame;
-import javax.swing.JTextArea;
+import javax.swing.JLabel;
 import javax.swing.JTextPane;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
@@ -82,6 +83,7 @@ public class FrostEditor {
 
 	public static void compile() {
 		consolePane.setText("");
+		consoleFrame.setVisible(true);
 		saveFile();
 		Object o = System.getenv().get("Path").split(""+File.pathSeparatorChar);
 		String javaRoot = "";
@@ -94,8 +96,8 @@ public class FrostEditor {
 			if (path.contains("JFrost")) {
 				System.out.println("compiler found at '"+path+"'");
 				try {
-					final Process process = new ProcessBuilder(javaRoot+"java.exe\"", "-jar", "\""+path+File.separatorChar+"frost.jar\"", file.getAbsolutePath()).start();
-					consoleFrame.setVisible(true);
+					List<String> command = Arrays.asList(javaRoot+"java.exe\"", "-jar", "\""+path+File.separatorChar+"frost.jar\"", "\""+file.getAbsolutePath()+"\"");
+					final Process process = new ProcessBuilder(command).start();
 					new Thread(new Runnable() {
 						
 						@Override
@@ -120,6 +122,7 @@ public class FrostEditor {
 					}).start();
 					process.waitFor();
 					execute(javaRoot+"java.exe\"");
+					return;
 				} catch (IOException e) {
 					e.printStackTrace();
 				} catch (InterruptedException e) {
@@ -128,6 +131,11 @@ public class FrostEditor {
 				break;
 			}
 		}
+		JDialog jDialog = new JDialog(new JFrame(){{
+			add(new JLabel("No Compiler was found in system Path"){{
+				setForeground(Color.RED);
+			}});
+		}}, true);
 	}
 
 	private static void execute(String javaDir) {

@@ -223,7 +223,7 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 			if (start > 0) {
 				start --;
 			}
-			for (; start >= 0 && doc.charAt(start) != '\n'; start --);
+			for (; start > 0 && doc.charAt(start) != '\n'; start --);
 			int end = frostSourceArea.getCaretPosition();
 			for (; end < doc.length() && doc.charAt(end) != '\n'; end ++);
 			return new Point(start, end);
