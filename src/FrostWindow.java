@@ -20,6 +20,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.swing.AbstractAction;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -258,6 +259,7 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 		// new Color(176, 139, 20)
 		
 		this.setTitle("Frost");
+		this.setIconImage(new ImageIcon("icon.png").getImage());
 		this.setUndecorated(true);
 		this.addMouseMotionListener(this);
 		this.addMouseListener(this);

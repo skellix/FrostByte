@@ -30,7 +30,7 @@ public class FrostEditor {
 			setEditable(false);
 			new Thread(this).start();
 		}
-		private class StyledText {
+		private class StyledText {// comment
 			public String text;
 			public Style style;
 		}
