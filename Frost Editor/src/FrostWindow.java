@@ -165,7 +165,7 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 	private static Style comment = frostSourceArea.addStyle("comment", null);
 	
 	private final static String errorPattern = "([^\\s]+)";
-	private final static String plainPattern = "(\\+|-|\\\\|\\*|%|print|\\.|endl|=~|=~all|new|die|file|read|readLine|hasNext|hasNextLine|readAll|write|close|return|=|\\(|\\)|\\{|\\}|==)";
+	private final static String plainPattern = "(\\+|-|/|\\*|%|print|\\.|endl|=~|=~all|new|die|file|read|readLine|hasNext|hasNextLine|readAll|write|close|return|=|\\(|\\)|\\{|\\}|==)";
 	private final static String tagPattern = "(?<=\\(|^|\\s)(class|func|if|else)(?=\\)|$|\\s)";
 	private final static String constantPattern = "(?<=\\(|^|\\s)(\"([^\"]| )*\"|\\d+\\.\\d+|\\d+)(?=\\)|$|\\s)";
 	private final static String variablePattern = "(?<=\\(|^|\\s)(::\\$[^\\$\\s]+|\\$[^\\$\\s]+|[^\\$\\s]+\\$)(?=\\)|$|\\s)";

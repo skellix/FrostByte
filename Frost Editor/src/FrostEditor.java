@@ -93,7 +93,7 @@ public class FrostEditor {
 			}
 		}
 		for (String path : System.getenv().get("Path").split(""+File.pathSeparatorChar)) {
-			if (path.contains("JFrost")) {
+			if (path.contains("Frost")) {
 				System.out.println("compiler found at '"+path+"'");
 				try {
 					List<String> command = Arrays.asList(javaRoot+"java.exe\"", "-jar", "\""+path+File.separatorChar+"frost.jar\"", "\""+file.getAbsolutePath()+"\"");
