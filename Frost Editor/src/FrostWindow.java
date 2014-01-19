@@ -1,13 +1,12 @@
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
-import java.awt.Rectangle;
-import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -15,17 +14,18 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
+import java.io.File;
+import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextPane;
 import javax.swing.KeyStroke;
@@ -34,7 +34,6 @@ import javax.swing.SpringLayout;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledEditorKit;
 
 
 public class FrostWindow extends JFrame implements MouseMotionListener, MouseListener, WindowListener {
@@ -110,6 +109,14 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 				}
 			});
 			
+			getKeymap().addActionForKeyStroke(KeyStroke.getKeyStroke('s', ActionEvent.CTRL_MASK), new AbstractAction() {
+				
+				@Override
+				public void actionPerformed(ActionEvent paramActionEvent) {
+					new FrostUtills().printFile(FrostEditor.file.getAbsolutePath(), frostSourceArea.getText());
+				}
+			});
+			
 			addKeyListener(new KeyListener() {
 				
 				@Override
@@ -155,13 +162,15 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 	private static Style constant = frostSourceArea.addStyle("constant", null);
 	private static Style variable = frostSourceArea.addStyle("variable", null);
 	private static Style function = frostSourceArea.addStyle("function", null);
+	private static Style comment = frostSourceArea.addStyle("comment", null);
 	
 	private final static String errorPattern = "([^\\s]+)";
 	private final static String plainPattern = "(\\+|-|\\\\|\\*|%|print|\\.|endl|=~|=~all|new|die|file|read|readLine|hasNext|hasNextLine|readAll|write|close|return|=|\\(|\\)|\\{|\\}|==)";
 	private final static String tagPattern = "(?<=\\(|^|\\s)(class|func|if|else)(?=\\)|$|\\s)";
-	private final static String constantPattern = "(?<=\\(|^|\\s)(\"[^\"]*\"|\\d+\\.\\d+|\\d+)(?=\\)|$|\\s)";
-	private final static String variablePattern = "(?<=\\(|^|\\s)(:\\$[^\\$\\s]+|\\$[^\\$\\s]+|[^\\$\\s]+\\$)(?=\\)|$|\\s)";
-	private final static String functionPattern = "(?<=\\(|^|\\s)(::[^\\$:\\s]+|\\*:[^\\$:\\s]+|(?<=func |class )[^\\$\\s]+(?=(\\s*\\{)))";
+	private final static String constantPattern = "(?<=\\(|^|\\s)(\"([^\"]| )*\"|\\d+\\.\\d+|\\d+)(?=\\)|$|\\s)";
+	private final static String variablePattern = "(?<=\\(|^|\\s)(::\\$[^\\$\\s]+|\\$[^\\$\\s]+|[^\\$\\s]+\\$)(?=\\)|$|\\s)";
+	private final static String functionPattern = "(?<=\\(|^|\\s)(::[^\\$:\\s]+|[^\\$:\\s]+::|(?<=func |class )[^\\$\\s]+(?=(\\s*\\{)))";
+	private final static String commentPattern = "(//[^\n]*)(\n|$)";
 
 	private static void putHighlights(int start, int end) {
 		
@@ -172,10 +181,6 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 		matcher = Pattern.compile(plainPattern).matcher(getTextToMatch()).region(start, end);
 		while (matcher.find()) {
 			frostSourceArea.getStyledDocument().setCharacterAttributes(matcher.start(1), matcher.group(1).length(), plain, true);
-		}
-		matcher = Pattern.compile(constantPattern).matcher(getTextToMatch()).region(start, end);
-		while (matcher.find()) {
-			frostSourceArea.getStyledDocument().setCharacterAttributes(matcher.start(1), matcher.group(1).length(), constant, true);
 		}
 		matcher = Pattern.compile(tagPattern).matcher(getTextToMatch()).region(start, end);
 		while (matcher.find()) {
@@ -193,6 +198,14 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 		while (matcher.find()) {
 			frostSourceArea.getStyledDocument().setCharacterAttributes(matcher.start(1), matcher.group(1).length(), plain, true);
 		}
+		matcher = Pattern.compile(constantPattern).matcher(getTextToMatch()).region(start, end);
+		while (matcher.find()) {
+			frostSourceArea.getStyledDocument().setCharacterAttributes(matcher.start(1), matcher.group(1).length(), constant, true);
+		}
+		matcher = Pattern.compile(commentPattern).matcher(getTextToMatch()).region(start, end);
+		while (matcher.find()) {
+			frostSourceArea.getStyledDocument().setCharacterAttributes(matcher.start(1), matcher.group(1).length(), comment, true);
+		}
 	}
 	
 	private static String getTextToMatch() {
@@ -207,10 +220,12 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 		try {
 			String doc = frostSourceArea.getStyledDocument().getText(0, frostSourceArea.getStyledDocument().getLength());
 			int start = frostSourceArea.getCaretPosition();
-			for (; start >= 1 && (doc.charAt(start) != ' ' || frostSourceArea.getCaretPosition()-start < 2); start --);
+			if (start > 0) {
+				start --;
+			}
+			for (; start >= 0 && doc.charAt(start) != '\n'; start --);
 			int end = frostSourceArea.getCaretPosition();
-			for (; end < doc.length() && (doc.charAt(end) != ' ' || end-frostSourceArea.getCaretPosition() < 2); end ++);
-			System.out.println(start+","+end);
+			for (; end < doc.length() && doc.charAt(end) != '\n'; end ++);
 			return new Point(start, end);
 		} catch (BadLocationException e) {
 			e.printStackTrace();
@@ -237,6 +252,8 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 		StyleConstants.setForeground(variable, new Color(6, 162, 203));
 		
 		StyleConstants.setForeground(function, new Color(33, 133, 89));
+		
+		StyleConstants.setForeground(comment, Color.GRAY);
 		
 		// new Color(176, 139, 20)
 		
@@ -374,6 +391,55 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 		} else {
 			resizeY = false;
 		}
+		if (mousePressX < 100 && mousePressY < 20) {
+			if (paramMouseEvent.getButton() == 3) {
+				final JPopupMenu jPopupMenu = new JPopupMenu();
+				jPopupMenu.add(new JMenuItem("save"){{
+					addActionListener(new ActionListener() {
+						
+						@Override
+						public void actionPerformed(ActionEvent arg0) {
+							jPopupMenu.setVisible(false);
+							new FrostUtills().printFile(FrostEditor.file.getAbsolutePath(), frostSourceArea.getText());
+						}
+					});
+				}});
+				jPopupMenu.add(new JMenuItem("open"){{
+					addActionListener(new ActionListener() {
+						
+						@Override
+						public void actionPerformed(ActionEvent arg0) {
+							jPopupMenu.setVisible(false);
+							try {
+								JFileChooser jFileChooser = new JFileChooser(new File(".").getCanonicalPath());
+								if (jFileChooser.showOpenDialog(FrostWindow.this) == JFileChooser.APPROVE_OPTION) {
+									FrostEditor.file = jFileChooser.getSelectedFile();
+									frostSourceArea.setText(new FrostUtills().readFile(FrostEditor.file));
+									putHighlights(0,frostSourceArea.getStyledDocument().getLength());
+								}
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+						}
+					});
+				}});
+				jPopupMenu.addFocusListener(new FocusListener() {
+					
+					@Override
+					public void focusLost(FocusEvent arg0) {
+						jPopupMenu.setVisible(false);
+					}
+					
+					@Override
+					public void focusGained(FocusEvent arg0) {
+						// TODO Auto-generated method stub
+						
+					}
+				});
+				jPopupMenu.setVisible(true);
+				jPopupMenu.requestFocus();
+			}
+		}
 	}
 	
 	int lastWidth = 0;
@@ -436,8 +502,19 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 
 	@Override
 	public void windowOpened(WindowEvent arg0) {
-		// TODO Auto-generated method stub
-		
+		File meta = new File(".frostmeta");
+		if (!meta.exists()) {
+			try {
+				meta.createNewFile();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		String doc = new FrostUtills().readFile(meta);
+		Matcher matcher = Pattern.compile("<file>(.*)</file>").matcher(doc);
+		if (matcher.find()) {
+			FrostEditor.file = new File(matcher.group(1));
+		}
 	}
 
 }
