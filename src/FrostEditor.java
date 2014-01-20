@@ -11,6 +11,7 @@ import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JTextPane;
+import javax.swing.SpringLayout;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
@@ -59,20 +60,33 @@ public class FrostEditor {
 		}
 	}
 	public static ConsolePane consolePane = new ConsolePane();
-	public static JFrame consoleFrame = new JFrame(){{
-		//setTitle("STDOUT");
-		add(consolePane);
-		setLocation(frostWindow.getLocation().x, frostWindow.getLocation().y+frostWindow.getHeight());
-		setSize(400, 250);
-	}};
+	public static CustomFrostWindow consoleFrame = new CustomFrostWindow(frostWindow){
+		{
+			setTitle("Console");
+			add(consolePane);
+			springLayout.putConstraint(SpringLayout.NORTH, consolePane, 25, SpringLayout.NORTH, getContentPane());
+	        springLayout.putConstraint(SpringLayout.WEST, consolePane, 5, SpringLayout.WEST, getContentPane());
+	        springLayout.putConstraint(SpringLayout.EAST, consolePane, -5, SpringLayout.EAST, getContentPane());
+	        springLayout.putConstraint(SpringLayout.SOUTH, consolePane, -5, SpringLayout.SOUTH, getContentPane());
+			setSize(400, 250);
+		}
+		@Override
+		public void setVisible(boolean b) {
+			setLocation(frostWindow.getLocation().x, frostWindow.getLocation().y+frostWindow.getHeight());
+			setSize(frostWindow.getWidth(), getHeight());
+			super.setVisible(b);
+		}
+	};
 	
 	public static Style stdioStyle = consolePane.addStyle("stdioStyle", null);
 	public static Style stderrStyle = consolePane.addStyle("stderrStyle", null);
+	public static Style stdinfoStyle = consolePane.addStyle("stdinfoStyle", null);
 	
 	public static void main(String[] args) {
 		
 		StyleConstants.setForeground(stdioStyle, Color.WHITE);
 		StyleConstants.setForeground(stderrStyle, Color.RED);
+		StyleConstants.setForeground(stdinfoStyle, Color.YELLOW);
 		
 		if (args.length > 0) {
 			file = new File(args[0]);
@@ -104,7 +118,7 @@ public class FrostEditor {
 						public void run() {
 							Scanner scanner = new Scanner(process.getInputStream());
 							while (scanner.hasNextLine()) {
-								consolePane.appendText("compiler:"+scanner.nextLine()+"\n", stdioStyle);
+								consolePane.appendText("compiler: "+scanner.nextLine()+"\n", stdinfoStyle);
 							}
 							scanner.close();
 						}
@@ -115,7 +129,7 @@ public class FrostEditor {
 						public void run() {
 							Scanner scanner = new Scanner(process.getErrorStream());
 							while (scanner.hasNextLine()) {
-								consolePane.appendText("compiler:"+scanner.nextLine()+"\n", stderrStyle);
+								consolePane.appendText("compiler: "+scanner.nextLine()+"\n", stderrStyle);
 							}
 							scanner.close();
 						}
