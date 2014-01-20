@@ -126,15 +126,20 @@ public class CustomFrostWindow extends JFrame implements MouseMotionListener, Mo
 			setSize(getWidth(), e.getY());
 		}
 		if (!(resizeX || resizeY)) {
-			setLocation(
-					getLocation().x+e.getX()-mousePressX,
-					getLocation().y+e.getY()-mousePressY);
+			boolean moved = false;
 			if (getParent() != null) {
 				int parentBottomLeftX = getParent().getLocationOnScreen().x;
 				int parentBottomLeftY = getParent().getLocationOnScreen().y+getParent().getHeight();
-				if (getLocationOnScreen().distance(new Point(parentBottomLeftX, parentBottomLeftY)) < 30) {
+				if (new Point(getLocation().x+e.getX()-mousePressX, getLocation().y+e.getY()-mousePressY
+						).distance(new Point(parentBottomLeftX, parentBottomLeftY)) < 10) {
+					moved = true;
 					setLocation(parentBottomLeftX, parentBottomLeftY);
 				}
+			}
+			if (!moved) {
+				setLocation(
+						getLocation().x+e.getX()-mousePressX,
+						getLocation().y+e.getY()-mousePressY);
 			}
 		}
 		super.update(getGraphics());
