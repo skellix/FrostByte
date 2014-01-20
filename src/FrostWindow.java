@@ -5,6 +5,8 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.AdjustmentEvent;
+import java.awt.event.AdjustmentListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.KeyEvent;
@@ -13,9 +15,11 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowEvent;
+import java.awt.event.WindowFocusListener;
 import java.awt.event.WindowListener;
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,9 +39,10 @@ import javax.swing.SpringLayout;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
+import javax.swing.undo.UndoManager;
 
 
-public class FrostWindow extends JFrame implements MouseMotionListener, MouseListener, WindowListener {
+public class FrostWindow extends JFrame implements MouseMotionListener, MouseListener, WindowListener, WindowFocusListener {
 
 	public static Font font = new Font("Monospaced", Font.PLAIN, 12);
 	
@@ -118,6 +123,25 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 				}
 			});
 			
+			// undo and reddo
+			final UndoManager undoManager = new UndoManager();
+			getDocument().addUndoableEditListener(undoManager);
+			getKeymap().addActionForKeyStroke(KeyStroke.getKeyStroke('z', ActionEvent.CTRL_MASK), new AbstractAction() {
+				
+				@Override
+				public void actionPerformed(ActionEvent paramActionEvent) {
+					undoManager.undo();
+				}
+			});
+			
+			getKeymap().addActionForKeyStroke(KeyStroke.getKeyStroke('y', ActionEvent.CTRL_MASK), new AbstractAction() {
+				
+				@Override
+				public void actionPerformed(ActionEvent paramActionEvent) {
+					undoManager.redo();
+				}
+			});
+			
 			addKeyListener(new KeyListener() {
 				
 				@Override
@@ -139,21 +163,6 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 				}
 			});
 		}
-		
-		@Override
-		public void paint(Graphics g) {
-//			int lineCount = getText().split("\n").length;
-//			int lineNumberWidth = (" "+lineCount).length()*getFontMetrics(getFont()).charWidth(' ');
-//			g.setColor(Color.LIGHT_GRAY);
-//			g.fillRect(0, 0, lineNumberWidth, getHeight());
-//			g.setColor(Color.black);
-//			g.setFont(new Font("Monospaced", Font.BOLD, 12));
-//			for (int i = 1 ; i <= lineCount ; i ++) {
-//				g.drawString(""+i, 3, i*getFontMetrics(getFont()).getHeight());
-//			}
-//			g.translate(lineNumberWidth, 0);
-			super.paint(g);
-		}
 	};
 	
 
@@ -166,7 +175,7 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 	private static Style comment = frostSourceArea.addStyle("comment", null);
 	
 	private final static String errorPattern = "([^\\s]+)";
-	private final static String plainPattern = "(\\+|-|/|\\*|%|print|\\.|endl|=~|=~all|new|die|file|read|readLine|hasNext|hasNextLine|readAll|write|close|return|=|\\(|\\)|\\{|\\}|==)";
+	private final static String plainPattern = "(\\+|-|/|\\*|%|print|\\.|endl|=~|=~all|new|die|file|read|readLine|hasNext|hasNextLine|readAll|write|close|return|=|\\(|\\)|\\{|\\}|==|!=|<|<=|>|>=|!)";
 	private final static String tagPattern = "(?<=\\(|^|\\s)(class|func|if|else)(?=\\)|$|\\s)";
 	private final static String constantPattern = "(?<=\\(|^|\\s)(\"([^\"]| )*\"|\\d+\\.\\d+|\\d+)(?=\\)|$|\\s)";
 	private final static String variablePattern = "(?<=\\(|^|\\s)(::\\$[^\\$\\s]+|\\$[^\\$\\s]+|[^\\$\\s]+\\$)(?=\\)|$|\\s)";
@@ -264,16 +273,39 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 		this.addMouseMotionListener(this);
 		this.addMouseListener(this);
 		this.addWindowListener(this);
+		this.addWindowFocusListener(this);
 		this.setSize(400, 400);
 		this.setBackground(new Color(0, 0, 0, 0));
+		
+		final JScrollPane jScrollPane = new JScrollPane(frostSourceArea);
+		
 		JPanel jPanel = new JPanel() {
+			{
+				setFont(frostSourceArea.getFont());
+			}
             @Override
             protected void paintComponent(Graphics g) {
                 if (g instanceof Graphics2D) {
                 	//g.fillRect(FrostWindow.this.getX(), FrostWindow.this.getY(), this.getWidth(), this.getHeight());
         			g.setColor(Color.GRAY);
-        			g.fillRect(0, 0, 100, 20);
         			g.fillRect(0, 20, this.getWidth(), this.getHeight()-20);
+        			
+        			int fontHeight = getFontMetrics(frostSourceArea.getFont()).getHeight();
+        			int fontWidth = getFontMetrics(frostSourceArea.getFont()).getWidths()[' '];
+        			int lineStart = jScrollPane.getVerticalScrollBar().getValue() / fontHeight;
+        			int lineEnd = lineStart + (int) (jScrollPane.getViewport().getSize().getHeight() / fontHeight);
+        			int lineOffset = jScrollPane.getVerticalScrollBar().getValue() % fontHeight;
+        			
+        			g.setColor(Color.BLACK);
+        			g.fillRect(1, 20, ((""+lineEnd).length()+1)*fontWidth, this.getHeight()-25);
+        			g.setColor(Color.LIGHT_GRAY);
+        			int j = 1;
+        			for (int i = lineStart ; i < lineEnd+1 ; i ++) {
+        				g.drawString(""+(i+1), 4, 25+((j++)*fontHeight)-lineOffset);
+        			}
+        			g.setColor(Color.GRAY);
+        			g.fillRect(0, 0, ((FrostEditor.file.getName().length()+1)*fontWidth)+15, 26);
+        			g.fillRect(0, FrostWindow.this.getHeight()-7, ((""+lineEnd).length()+1)*fontWidth, FrostWindow.this.getHeight());
         			g.setColor(Color.WHITE);
         			g.drawString(FrostEditor.file.getName(), 5, 15);
                 }
@@ -293,32 +325,59 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
         exitButton.setBackground(Color.RED);
         exitButton.setOpaque(true);
         
-        JScrollPane jScrollPane = new JScrollPane(frostSourceArea);
-        
+        jScrollPane.getVerticalScrollBar().addAdjustmentListener(new AdjustmentListener() {
+			
+			@Override
+			public void adjustmentValueChanged(AdjustmentEvent paramAdjustmentEvent) {
+				if (updateLineNumbers.get()) {
+					int caret = frostSourceArea.getCaretPosition();
+					update(getGraphics());
+					FrostWindow.this.validate();
+					frostSourceArea.setCaretPosition(caret);
+				}
+			}
+		});
         jPanel.add(exitButton);
         jPanel.add(jScrollPane);
         springLayout.putConstraint(SpringLayout.NORTH, exitButton, 2, SpringLayout.NORTH, jPanel);
-        springLayout.putConstraint(SpringLayout.WEST, exitButton, 82, SpringLayout.WEST, jPanel);
-        springLayout.putConstraint(SpringLayout.EAST, exitButton, 98, SpringLayout.WEST, jPanel);
+        springLayout.putConstraint(SpringLayout.WEST, exitButton, new Spring() {
+
+			@Override
+			public void setValue(int paramInt) {}
+			@Override
+			public int getValue() {
+				int fontWidth = getFontMetrics(frostSourceArea.getFont()).getWidths()[' '];
+				return (FrostEditor.file.getName().length()+1)*fontWidth;
+			}
+			@Override
+			public int getPreferredValue() {return getValue();}
+			@Override
+			public int getMinimumValue() {return 0;}
+			@Override
+			public int getMaximumValue() {return 0;}
+		}, SpringLayout.WEST, jPanel);
+        springLayout.putConstraint(SpringLayout.EAST, exitButton, 15, SpringLayout.WEST, exitButton);
         springLayout.putConstraint(SpringLayout.SOUTH, exitButton, 18, SpringLayout.NORTH, jPanel);
         
         springLayout.putConstraint(SpringLayout.NORTH, jScrollPane, 25, SpringLayout.NORTH, jPanel);
         springLayout.putConstraint(SpringLayout.WEST, jScrollPane, new Spring() {
 			
 			@Override
-			public void setValue(int arg0) {}
+			public void setValue(int paramInt) {}
 			@Override
 			public int getValue() {
-				int lineCount = frostSourceArea.getText().split("\n").length;
-				int lineNumberWidth = (" "+lineCount).length()*getFontMetrics(getFont()).charWidth(' ');
-				return lineNumberWidth;
+				int fontHeight = getFontMetrics(frostSourceArea.getFont()).getHeight();
+				int fontWidth = getFontMetrics(frostSourceArea.getFont()).getWidths()[' '];
+				int lineStart = jScrollPane.getVerticalScrollBar().getValue() / fontHeight;
+    			int lineEnd = lineStart + (int) (jScrollPane.getViewport().getSize().getHeight() / fontHeight);
+				return ((""+lineEnd).length()+1)*fontWidth;
 			}
 			@Override
 			public int getPreferredValue() {return getValue();}
 			@Override
-			public int getMinimumValue() {return getValue();}
+			public int getMinimumValue() {return 0;}
 			@Override
-			public int getMaximumValue() {return getValue();}
+			public int getMaximumValue() {return 0;}
 		}, SpringLayout.WEST, jPanel);
         springLayout.putConstraint(SpringLayout.EAST, jScrollPane, -5, SpringLayout.EAST, jPanel);
         springLayout.putConstraint(SpringLayout.SOUTH, jScrollPane, -5, SpringLayout.SOUTH, jPanel);
@@ -327,10 +386,14 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	}
 	
+	public AtomicBoolean updateLineNumbers = new AtomicBoolean(false);
+	
 	@Override
 	public void setVisible(boolean b) {
 		super.setVisible(b);
 		putHighlights(0,frostSourceArea.getStyledDocument().getLength());
+		updateLineNumbers.set(true);
+		this.validate();
 	}
 	
 	@Override
@@ -345,6 +408,7 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 			this.setLocation(
 					this.getLocation().x+paramMouseEvent.getX()-mousePressX,
 					this.getLocation().y+paramMouseEvent.getY()-mousePressY);
+			FrostEditor.consoleFrame.setLocation(getLocationOnScreen().x, getLocationOnScreen().y+getHeight());
 		}
 		super.update(getGraphics());
 		frostSourceArea.update(frostSourceArea.getGraphics());
@@ -396,6 +460,7 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 		if (mousePressX < 100 && mousePressY < 20) {
 			if (paramMouseEvent.getButton() == 3) {
 				final JPopupMenu jPopupMenu = new JPopupMenu();
+				jPopupMenu.setLocation(paramMouseEvent.getXOnScreen(), paramMouseEvent.getYOnScreen());
 				jPopupMenu.add(new JMenuItem("save"){{
 					addActionListener(new ActionListener() {
 						
@@ -463,8 +528,7 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 
 	@Override
 	public void windowActivated(WindowEvent arg0) {
-		// TODO Auto-generated method stub
-		
+		FrostEditor.consoleFrame.setState(JFrame.NORMAL);
 	}
 
 	@Override
@@ -492,14 +556,12 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 
 	@Override
 	public void windowDeiconified(WindowEvent arg0) {
-		// TODO Auto-generated method stub
-		
+		FrostEditor.consoleFrame.setState(JFrame.NORMAL);
 	}
 
 	@Override
 	public void windowIconified(WindowEvent arg0) {
-		// TODO Auto-generated method stub
-		
+		FrostEditor.consoleFrame.setState(JFrame.ICONIFIED);
 	}
 
 	@Override
@@ -517,6 +579,16 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 		if (matcher.find()) {
 			FrostEditor.file = new File(matcher.group(1));
 		}
+	}
+
+	@Override
+	public void windowGainedFocus(WindowEvent arg0) {
+		
+	}
+
+	@Override
+	public void windowLostFocus(WindowEvent arg0) {
+		
 	}
 
 }
