@@ -60,7 +60,7 @@ public class FrostEditor {
 		}
 	}
 	public static ConsolePane consolePane = new ConsolePane();
-	public static CustomFrostWindow consoleFrame = new CustomFrostWindow(frostWindow){
+	public static CustomFrostWindow consoleFrame = new CustomFrostWindow(frostWindow) {
 		{
 			setTitle("Console");
 			add(consolePane);
