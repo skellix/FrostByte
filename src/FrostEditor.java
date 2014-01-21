@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextPane;
 import javax.swing.SpringLayout;
 import javax.swing.text.BadLocationException;
@@ -49,7 +50,7 @@ public class FrostEditor {
 				if (next != null) {
 					try {
 						getStyledDocument().insertString(getStyledDocument().getLength(), next.text, next.style);
-						Thread.sleep(100);
+						Thread.sleep(1);
 					} catch (BadLocationException e) {
 						e.printStackTrace();
 					} catch (InterruptedException e) {
@@ -63,11 +64,12 @@ public class FrostEditor {
 	public static CustomFrostWindow consoleFrame = new CustomFrostWindow(frostWindow) {
 		{
 			setTitle("Console");
-			add(consolePane);
-			springLayout.putConstraint(SpringLayout.NORTH, consolePane, 25, SpringLayout.NORTH, getContentPane());
-	        springLayout.putConstraint(SpringLayout.WEST, consolePane, 5, SpringLayout.WEST, getContentPane());
-	        springLayout.putConstraint(SpringLayout.EAST, consolePane, -5, SpringLayout.EAST, getContentPane());
-	        springLayout.putConstraint(SpringLayout.SOUTH, consolePane, -5, SpringLayout.SOUTH, getContentPane());
+			JScrollPane jScrollPane = new JScrollPane(consolePane);
+			add(jScrollPane);
+			springLayout.putConstraint(SpringLayout.NORTH, jScrollPane, 25, SpringLayout.NORTH, getContentPane());
+	        springLayout.putConstraint(SpringLayout.WEST, jScrollPane, 5, SpringLayout.WEST, getContentPane());
+	        springLayout.putConstraint(SpringLayout.EAST, jScrollPane, -5, SpringLayout.EAST, getContentPane());
+	        springLayout.putConstraint(SpringLayout.SOUTH, jScrollPane, -5, SpringLayout.SOUTH, getContentPane());
 			setSize(400, 250);
 		}
 		@Override
@@ -75,6 +77,7 @@ public class FrostEditor {
 			setLocation(frostWindow.getLocation().x, frostWindow.getLocation().y+frostWindow.getHeight());
 			setSize(frostWindow.getWidth(), getHeight());
 			super.setVisible(b);
+			createBufferStrategy(4);
 		}
 	};
 	
