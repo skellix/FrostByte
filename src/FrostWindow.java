@@ -154,6 +154,7 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 				public void keyReleased(KeyEvent e) {
 					Point p = getHighlightRegion();
 					putHighlights(p.x, p.y);
+					FrostEditor.frostWindow.validate();
 				}
 				
 				@Override
@@ -175,8 +176,8 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 	private static Style comment = frostSourceArea.addStyle("comment", null);
 	
 	private final static String errorPattern = "([^\\s]+)";
-	private final static String plainPattern = "(\\+|-|/|\\*|%|print|\\.|endl|=~|=~all|new|die|file|read|readLine|hasNext|hasNextLine|readAll|write|close|return|=|\\(|\\)|\\{|\\}|==|!=|<|<=|>|>=|!)";
-	private final static String tagPattern = "(?<=\\(|^|\\s)(class|func|if|else)(?=\\)|$|\\s)";
+	private final static String plainPattern = "(\\+|-|/|\\*|%|equals|print|\\.|endl|=~|=~all|new|die|file|read|readLine|hasNext|hasNextLine|readAll|write|close|return|=|\\(|\\)|\\{|\\}|==|!=|<|<=|>|>=|!)";
+	private final static String tagPattern = "(?<=\\(|^|\\s)(class|func|if|else|while|elsif)(?=\\)|$|\\s)";
 	private final static String constantPattern = "(?<=\\(|^|\\s)(\"([^\"]| )*\"|\\d+\\.\\d+|\\d+)(?=\\)|$|\\s)";
 	private final static String variablePattern = "(?<=\\(|^|\\s)(::\\$[^\\$\\s]+|\\$[^\\$\\s]+|[^\\$\\s]+\\$)(?=\\)|$|\\s)";
 	private final static String functionPattern = "(?<=\\(|^|\\s)(::[^\\$:\\s]+|[^\\$:\\s]+::|(?<=func |class )[^\\$\\s]+(?=(\\s*\\{)))";
@@ -295,12 +296,13 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
         			int lineStart = jScrollPane.getVerticalScrollBar().getValue() / fontHeight;
         			int lineEnd = lineStart + (int) (jScrollPane.getViewport().getSize().getHeight() / fontHeight);
         			int lineOffset = jScrollPane.getVerticalScrollBar().getValue() % fontHeight;
+        			int linesSize = frostSourceArea.getText().split("(?=\n)").length;
         			
         			g.setColor(Color.BLACK);
         			g.fillRect(1, 20, ((""+lineEnd).length()+1)*fontWidth, this.getHeight()-25);
         			g.setColor(Color.LIGHT_GRAY);
         			int j = 1;
-        			for (int i = lineStart ; i < lineEnd+1 ; i ++) {
+        			for (int i = lineStart ; i < lineEnd+1 && i < linesSize ; i ++) {
         				g.drawString(""+(i+1), 4, 25+((j++)*fontHeight)-lineOffset);
         			}
         			g.setColor(Color.GRAY);
