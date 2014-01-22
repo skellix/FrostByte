@@ -94,8 +94,9 @@ public class FrostEditor {
 		if (args.length > 0) {
 			file = new File(args[0]);
 		}
-		loadFile();
+		frostWindow.loadMeta();
 		frostWindow.setVisible(true);
+		frostWindow.postSetVisible();
 	}
 
 	public static void compile() {
@@ -189,7 +190,7 @@ public class FrostEditor {
 		}
 	}
 
-	private static void loadFile() {
+	public static void loadFile() {
 		if (file.exists()) {
 			frostWindow.frostSourceArea.setText(new FrostUtills().readFile(file));
 		}

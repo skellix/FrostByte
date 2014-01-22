@@ -176,12 +176,13 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 	private static Style comment = frostSourceArea.addStyle("comment", null);
 	
 	private final static String errorPattern = "([^\\s]+)";
-	private final static String plainPattern = "(\\+|-|/|\\*|%|equals|print|\\.|endl|=~|=~all|new|die|file|read|readLine|hasNext|hasNextLine|readAll|write|close|return|=|\\(|\\)|\\{|\\}|==|!=|<|<=|>|>=|!)";
+	private final static String plainPattern = "(\\+|-|/|\\*|%|equals|print|\\.|endl|=~|=~all|new|die|file|read|readLine|hasNext|hasNextLine"+
+													"|readAll|write|close|return|compile|=|\\(|\\)|\\{|\\}|==|!=|<|<=|>|>=|!)";
 	private final static String tagPattern = "(?<=\\(|^|\\s)(class|func|if|else|while|elsif)(?=\\)|$|\\s)";
-	private final static String constantPattern = "(?<=\\(|^|\\s)(\"([^\"]| )*\"|\\d+\\.\\d+|\\d+)(?=\\)|$|\\s)";
+	private final static String constantPattern = "(?<=\\(|^|\\s)(\"(\\\\\"|[^\"]| )*\"|\\d+\\.\\d+|\\d+)(?=\\)|$|\\s)";
 	private final static String variablePattern = "(?<=\\(|^|\\s)(::\\$[^\\$\\s]+|\\$[^\\$\\s]+|[^\\$\\s]+\\$)(?=\\)|$|\\s)";
 	private final static String functionPattern = "(?<=\\(|^|\\s)(::[^\\$:\\s]+|[^\\$:\\s]+::|(?<=func |class )[^\\$\\s]+(?=(\\s*\\{)))";
-	private final static String commentPattern = "(//[^\n]*)(\n|$)";
+	private final static String commentPattern = "(\\\\\")|(//[^\n]*)(\n|$)";
 
 	private static void putHighlights(int start, int end) {
 		
@@ -393,6 +394,10 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 	@Override
 	public void setVisible(boolean b) {
 		super.setVisible(b);
+	}
+	
+	public void postSetVisible() {
+		FrostEditor.loadFile();
 		putHighlights(0,frostSourceArea.getStyledDocument().getLength());
 		updateLineNumbers.set(true);
 		this.validate();
@@ -591,6 +596,22 @@ public class FrostWindow extends JFrame implements MouseMotionListener, MouseLis
 	@Override
 	public void windowLostFocus(WindowEvent arg0) {
 		
+	}
+
+	public void loadMeta() {
+		File meta = new File(".frostmeta");
+		if (!meta.exists()) {
+			try {
+				meta.createNewFile();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		String doc = new FrostUtills().readFile(meta);
+		Matcher matcher = Pattern.compile("<file>(.*)</file>").matcher(doc);
+		if (matcher.find()) {
+			FrostEditor.file = new File(matcher.group(1));
+		}
 	}
 
 }
